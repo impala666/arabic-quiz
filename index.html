@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>アラビア文字 読み方クイズ</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16161a" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="読み方クイズ">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f7f6f3; --card:#ffffff; --ink:#1d1d1f; --sub:#6b6b70;
+  --line:#dcdad4; --accent:#b02a26;
+  --ok:#17874f; --okbg:rgba(23,135,79,.10);
+  --ng:#c0392b; --ngbg:rgba(192,57,43,.10);
+  --heat:192,57,43; --na:rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#16161a; --card:#212127; --ink:#eceaea; --sub:#a0a0a8;
+    --line:#35353d; --accent:#e8706b;
+    --ok:#35c489; --okbg:rgba(53,196,137,.14);
+    --ng:#ff7b70; --ngbg:rgba(255,123,112,.14);
+    --heat:255,110,99; --na:rgba(255,255,255,.05);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16161a; --card:#212127; --ink:#eceaea; --sub:#a0a0a8;
+  --line:#35353d; --accent:#e8706b;
+  --ok:#35c489; --okbg:rgba(53,196,137,.14);
+  --ng:#ff7b70; --ngbg:rgba(255,123,112,.14);
+  --heat:255,110,99; --na:rgba(255,255,255,.05);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  font-size:15px; line-height:1.6;
+}
+.ar{font-family:"Noto Naskh Arabic","Amiri","Geeza Pro","Noto Sans Arabic",serif; direction:rtl}
+.wrap{max-width:540px; margin:0 auto; padding:12px 14px 30px}
+header{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+h1{font-size:15px; margin:0; font-weight:600}
+.score{font-size:13px; color:var(--sub); margin-left:auto; font-variant-numeric:tabular-nums}
+.tabs{display:flex; gap:6px; margin-bottom:12px}
+.tab{
+  flex:1; padding:8px; border-radius:9px; border:1px solid var(--line);
+  background:var(--card); color:var(--sub); font-size:13px; cursor:pointer;
+}
+.tab.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+.barwrap{height:4px; background:var(--line); border-radius:99px; overflow:hidden; margin-bottom:14px}
+.bar{height:100%; width:0; background:var(--accent); transition:width .3s}
+
+.qcard{
+  position:relative; background:var(--card); border:1px solid var(--line);
+  border-radius:18px; padding:24px 16px 18px; text-align:center;
+  margin-bottom:18px; overflow:hidden;
+}
+.formlabel{font-size:12px; color:var(--sub); letter-spacing:.08em}
+.glyph{font-size:92px; line-height:1.25; margin:2px 0 0; min-height:120px;
+  display:flex; align-items:center; justify-content:center}
+.mark{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; opacity:0}
+.mark.show{animation:pop .45s cubic-bezier(.2,1.5,.5,1) forwards}
+.mark svg{width:150px; height:150px; max-width:62%}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+.mark.ok svg{stroke:var(--ok)} .mark.ng svg{stroke:var(--ng)}
+.mark::before{content:""; position:absolute; inset:0}
+.mark.ok::before{background:var(--okbg)} .mark.ng::before{background:var(--ngbg)}
+.prompt{font-size:13px; color:var(--sub); text-align:center; margin:-4px 0 12px}
+.choices{display:flex; flex-direction:column; gap:10px}
+.choice{
+  width:100%; padding:13px 16px; border-radius:13px; border:2px solid var(--line);
+  background:var(--card); color:var(--ink); cursor:pointer; text-align:center;
+  font-size:19px; font-weight:600; transition:border-color .15s, background .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.choice .kana{display:block; font-size:12px; font-weight:400; color:var(--sub); margin-top:2px; min-height:14px}
+.choice.correct{border-color:var(--ok); background:var(--okbg); box-shadow:0 0 0 3px var(--okbg)}
+.choice.wrong{border-color:var(--ng); background:var(--ngbg)}
+.choice.dim{opacity:.45}
+.opts{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--sub); margin-top:14px; justify-content:center}
+.opts label{display:flex; align-items:center; gap:5px; cursor:pointer}
+.foot{display:flex; gap:10px; margin-top:16px}
+.btn{flex:1; padding:11px; border-radius:10px; border:1px solid var(--line);
+  background:var(--card); color:var(--ink); font-size:13px; cursor:pointer}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+.btn:disabled{opacity:.4; cursor:default}
+.result{text-align:center; padding:24px 10px}
+.result .big{font-size:40px; font-weight:700; color:var(--accent)}
+.hidden{display:none}
+
+/* ---- ヒートマップ ---- */
+.seg{display:flex; gap:6px; margin-bottom:10px}
+.seg button{flex:1; padding:8px 4px; font-size:12px; border-radius:8px;
+  border:1px solid var(--line); background:var(--card); color:var(--sub); cursor:pointer}
+.seg button.on{border-color:var(--accent); color:var(--accent); font-weight:600}
+.hm{width:100%; border-collapse:separate; border-spacing:3px}
+.hm th{font-size:10.5px; color:var(--sub); font-weight:500; padding:2px 0}
+.hm td{width:22%; padding:0}
+.hm td.lab{width:12%; font-size:11px; color:var(--sub); text-align:right; padding-inline-end:4px; white-space:nowrap}
+.hm td.lab b{display:block; font-size:17px; color:var(--ink); font-family:"Noto Naskh Arabic",serif}
+.cellbtn{
+  width:100%; border:1px solid var(--line); border-radius:8px; background:var(--card);
+  color:var(--ink); padding:6px 2px 4px; cursor:pointer; line-height:1.15;
+  -webkit-tap-highlight-color:transparent;
+}
+.cellbtn .g{font-size:19px; font-family:"Noto Naskh Arabic",serif; direction:rtl; display:block}
+.cellbtn .v{display:block; font-size:9.5px; opacity:.8; font-variant-numeric:tabular-nums}
+.cellbtn.na{background:var(--na); border-style:dashed; color:var(--sub); cursor:default}
+.cellbtn.hot{border-color:transparent}
+.cellbtn.light{color:#fff}
+.legend{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--sub); margin:12px 0 4px}
+.legend .sw{flex:1; height:9px; border-radius:99px;
+  background:linear-gradient(90deg, var(--card), rgba(var(--heat),.9))}
+.detail{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:11px 13px; font-size:13px; margin-top:10px; min-height:52px;
+}
+.detail .t{font-weight:600}
+.note{font-size:11.5px; color:var(--sub); line-height:1.7; margin-top:12px}
+details{margin-top:14px; border:1px solid var(--line); border-radius:12px; background:var(--card)}
+summary{padding:11px 14px; cursor:pointer; font-size:13px; font-weight:600}
+.body{padding:0 14px 14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>アラビア文字 読み方クイズ</h1>
+  <div class="score" id="score">0 / 0</div>
+</header>
+
+<div class="tabs">
+  <button class="tab on" id="tabQ">クイズ</button>
+  <button class="tab" id="tabH">苦手ヒートマップ</button>
+</div>
+
+<!-- ============ クイズ ============ -->
+<section id="paneQ">
+  <div class="barwrap"><div class="bar" id="bar"></div></div>
+
+  <div id="game">
+    <div class="qcard">
+      <div class="formlabel" id="formlabel">独立形</div>
+      <div class="glyph ar" id="glyph"></div>
+      <div class="mark" id="mark" aria-hidden="true"></div>
+    </div>
+    <div class="prompt">この文字の読み方は？</div>
+    <div class="choices" id="choices"></div>
+    <div class="opts">
+      <label><input type="checkbox" id="optForms" checked> 字頭・字中・字尾も出す</label>
+      <label><input type="checkbox" id="optKana"> カタカナを常に表示</label>
+    </div>
+  </div>
+
+  <div id="done" class="result hidden">
+    <div class="big" id="finalScore"></div>
+    <p id="finalMsg"></p>
+    <div class="foot">
+      <button class="btn" id="again">まちがえた分だけ</button>
+      <button class="btn primary" id="restart">もう一度</button>
+    </div>
+    <div class="foot">
+      <button class="btn" id="weak">苦手トップ15で特訓</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ヒートマップ ============ -->
+<section id="paneH" class="hidden">
+  <div class="seg">
+    <button id="mCount" class="on">① まちがえた回数</button>
+    <button id="mRate">② まちがえ率</button>
+  </div>
+  <div id="hmHost"></div>
+  <div class="legend"><span>少</span><span class="sw"></span><span>多</span></div>
+  <div class="detail" id="detail">マスをタップすると内訳が出ます。</div>
+  <div class="foot">
+    <button class="btn" id="weak2">苦手トップ15で特訓</button>
+    <button class="btn" id="reset">記録を消す</button>
+  </div>
+  <p class="note">
+    字頭形・字中形・字尾形は別々に集計しています。斜線のマスは、その文字に存在しない形です
+    （ا د ذ ر ز و は左につながらないため、字頭形と字中形がありません）。<br>
+    ②まちがえ率は出題が3回未満のマスを淡く表示しています。分母が小さいうちは当てになりませんので、
+    回数が貯まるまでは①を目安になさってください。
+  </p>
+</section>
+
+<details>
+  <summary>データのバックアップ・復元</summary>
+  <div class="body">
+    <div class="bar">
+      <button class="btn" id="bkExp">記録をファイルに保存</button>
+      <button class="btn" id="bkImp">ファイルから復元</button>
+    </div>
+    <input type="file" id="bkFile" accept="application/json,.json" style="display:none">
+    <p class="note">学習の記録は、このアプリを開いているアドレス（オリジン）ごとにブラウザへ保存されます。
+    端末を買い替えるとき、またはアプリを別のURLへ移すときは、ここで書き出したファイルを移行先で復元してください。</p>
+  </div>
+</details>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var L = [
+ {c:"ا",t:"alif",k:"アリフ"},   {c:"ب",t:"bā'",k:"バー"},    {c:"ت",t:"tā'",k:"ター"},
+ {c:"ث",t:"thā'",k:"サー"},     {c:"ج",t:"jīm",k:"ジーム"},  {c:"ح",t:"ḥā'",k:"ハー"},
+ {c:"خ",t:"khā'",k:"ハー"},     {c:"د",t:"dāl",k:"ダール"},  {c:"ذ",t:"dhāl",k:"ザール"},
+ {c:"ر",t:"rā'",k:"ラー"},      {c:"ز",t:"zāy",k:"ザーイ"},  {c:"س",t:"sīn",k:"スィーン"},
+ {c:"ش",t:"shīn",k:"シーン"},   {c:"ص",t:"ṣād",k:"サード"},  {c:"ض",t:"ḍād",k:"ダード"},
+ {c:"ط",t:"ṭā'",k:"ター"},      {c:"ظ",t:"ẓā'",k:"ザー"},    {c:"ع",t:"ʿayn",k:"アイン"},
+ {c:"غ",t:"ghayn",k:"ガイン"},  {c:"ف",t:"fā'",k:"ファー"},  {c:"ق",t:"qāf",k:"カーフ"},
+ {c:"ك",t:"kāf",k:"カーフ"},    {c:"ل",t:"lām",k:"ラーム"},  {c:"م",t:"mīm",k:"ミーム"},
+ {c:"ن",t:"nūn",k:"ヌーン"},    {c:"ه",t:"hā'",k:"ハー"},    {c:"و",t:"wāw",k:"ワーウ"},
+ {c:"ي",t:"yā'",k:"ヤー"}
+];
+var SIM = ["بتثني","جحخ","دذ","رز","سش","صض","طظ","عغ","فق","كل","مه","اول"];
+var NONCONNECT = "ادذرزو";
+var FORMS = [["iso","独立形"],["ini","字頭形"],["med","字中形"],["fin","字尾形"]];
+var TATWEEL = "\u0640";
+
+function byChar(c){ for(var i=0;i<L.length;i++) if(L[i].c===c) return L[i]; return null; }
+function hasForm(c,f){ return (NONCONNECT.indexOf(c)<0) || f==="iso" || f==="fin"; }
+function glyphOf(c,f){
+  if(f==="iso") return c;
+  if(f==="ini") return c+TATWEEL;
+  if(f==="med") return TATWEEL+c+TATWEEL;
+  return TATWEEL+c;
+}
+function formName(f){ for(var i=0;i<FORMS.length;i++) if(FORMS[i][0]===f) return FORMS[i][1]; return f; }
+function key(c,f){ return c+"|"+f; }
+
+/* ---------- 記録 ---------- */
+var SKEY="arabic-quiz:stats:v2";
+var stats = (function(){ try{ return JSON.parse(localStorage.getItem(SKEY))||{}; }catch(e){ return {}; } })();
+function saveStats(){ try{ localStorage.setItem(SKEY,JSON.stringify(stats)); }catch(e){} }
+function rec(c,f){ var k=key(c,f); return stats[k]||{n:0,x:0}; }
+function bump(c,f,wrong){
+  var k=key(c,f); if(!stats[k]) stats[k]={n:0,x:0};
+  stats[k].n++; if(wrong) stats[k].x++; saveStats();
+}
+
+var $=function(i){return document.getElementById(i);};
+function shuffle(a){ a=a.slice();
+  for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}
+  return a; }
+
+/* ---------- 出題 ---------- */
+var queue=[], cur=0, ok=0, total=0, misses=[], locked=false;
+var opts={forms:true, kana:false};
+
+function simOf(ch){ for(var i=0;i<SIM.length;i++) if(SIM[i].indexOf(ch)>=0) return SIM[i]; return ""; }
+function distractors(it){
+  var g=simOf(it.c), pool=[];
+  L.forEach(function(x){ if(x.t!==it.t && g.indexOf(x.c)>=0) pool.push(x); });
+  var out=shuffle(pool).slice(0,2);
+  var rest=shuffle(L.filter(function(x){ return x.t!==it.t && out.indexOf(x)<0; }));
+  while(out.length<2) out.push(rest.pop());
+  return out;
+}
+function pickForm(c){
+  if(!opts.forms) return "iso";
+  var avail=FORMS.map(function(f){return f[0];}).filter(function(f){ return hasForm(c,f); });
+  return avail[Math.floor(Math.random()*avail.length)];
+}
+function fullRound(){
+  return shuffle(L).map(function(x){ return {c:x.c, f:pickForm(x.c)}; });
+}
+function weakRound(n){
+  var cells=[];
+  L.forEach(function(x){ FORMS.forEach(function(ff){
+    if(!hasForm(x.c,ff[0])) return;
+    var r=rec(x.c,ff[0]);
+    if(r.x>0) cells.push({c:x.c,f:ff[0],s:r.x + (r.x/Math.max(1,r.n))});
+  });});
+  /* 先に並びをシャッフルしてから降順ソート。同スコアのマスは順序がランダムのまま残るので、
+     15枠に収まりきらない同率のマスからは毎回ちがう顔ぶれが選ばれる */
+  cells = shuffle(cells);
+  cells.sort(function(a,b){ return b.s-a.s; });
+  return shuffle(cells.slice(0,n)).map(function(q){ return {c:q.c,f:q.f}; });
+}
+
+function start(list){
+  if(!list.length){ return; }
+  queue=list; cur=0; ok=0; total=0; misses=[];
+  $("done").classList.add("hidden"); $("game").classList.remove("hidden");
+  $("score").textContent="0 / 0";
+  ask();
+}
+function ask(){
+  locked=false;
+  var q=queue[cur], it=byChar(q.c);
+  $("formlabel").textContent=formName(q.f);
+  $("glyph").textContent=glyphOf(q.c,q.f);
+  $("mark").className="mark"; $("mark").innerHTML="";
+  var box=$("choices"); box.innerHTML="";
+  shuffle(distractors(it).concat([it])).forEach(function(ch){
+    var b=document.createElement("button");
+    b.className="choice"; b.type="button"; b.dataset.t=ch.t;
+    b.innerHTML='<span>'+ch.t+'</span><span class="kana">'+(opts.kana?ch.k:'')+'</span>';
+    b.addEventListener("click",function(){ answer(b,ch,q,it,box); });
+    box.appendChild(b);
+  });
+  $("bar").style.width=(cur/queue.length*100)+"%";
+}
+var SVG_OK='<svg viewBox="0 0 100 100" fill="none" stroke-width="9" stroke-linecap="round"><circle cx="50" cy="50" r="38"/></svg>';
+var SVG_NG='<svg viewBox="0 0 100 100" fill="none" stroke-width="10" stroke-linecap="round"><line x1="22" y1="22" x2="78" y2="78"/><line x1="78" y1="22" x2="22" y2="78"/></svg>';
+
+function answer(btn, picked, q, it, box){
+  if(locked) return; locked=true; total++;
+  var right=(picked.t===it.t);
+  if(right) ok++; else misses.push(q);
+  bump(q.c,q.f,!right);
+
+  var m=$("mark");
+  m.innerHTML = right?SVG_OK:SVG_NG;
+  m.className = "mark show "+(right?"ok":"ng");
+
+  Array.prototype.forEach.call(box.children,function(b){
+    b.disabled=true;
+    if(b.dataset.t===it.t){ b.classList.add("correct"); b.querySelector(".kana").textContent=it.k; }
+    else if(b===btn) b.classList.add("wrong");
+    else b.classList.add("dim");
+  });
+  $("score").textContent=ok+" / "+total;
+  setTimeout(next, right?1000:1900);
+}
+function next(){ cur++; if(cur>=queue.length) finish(); else ask(); }
+
+function finish(){
+  $("bar").style.width="100%";
+  $("game").classList.add("hidden"); $("done").classList.remove("hidden");
+  $("finalScore").textContent=ok+" / "+total;
+  var p=Math.round(ok/total*100);
+  $("finalMsg").textContent = p===100?"全問正解です。お見事でした。"
+    : p>=80?"よくできました。あと少しです。"
+    : p>=50?"半分は身についています。もう一周いきましょう。"
+    : "まずは紛らわしい字から固めていきましょう。";
+  $("again").disabled = misses.length===0;
+  $("again").textContent = misses.length ? ("まちがえた "+misses.length+" 問だけ") : "全問正解！";
+  drawHeat();
+}
+
+/* ---------- ヒートマップ ---------- */
+var metric="count";
+function values(){
+  var out={}, maxC=0;
+  L.forEach(function(x){ FORMS.forEach(function(ff){
+    if(!hasForm(x.c,ff[0])) return;
+    var r=rec(x.c,ff[0]);
+    out[key(x.c,ff[0])]=r;
+    if(r.x>maxC) maxC=r.x;
+  });});
+  return {m:out, maxC:maxC};
+}
+function drawHeat(){
+  var v=values(), host=$("hmHost");
+  var h='<table class="hm"><tr><th></th>';
+  FORMS.forEach(function(f){ h+='<th>'+f[1]+'</th>'; });
+  h+='</tr>';
+  L.forEach(function(x){
+    h+='<tr><td class="lab"><b>'+x.c+'</b>'+x.t+'</td>';
+    FORMS.forEach(function(ff){
+      var f=ff[0];
+      if(!hasForm(x.c,f)){ h+='<td><div class="cellbtn na"><span class="g">—</span><span class="v">なし</span></div></td>'; return; }
+      var r=v.m[key(x.c,f)], val, lab, a=0, faint=false;
+      if(metric==="count"){
+        val=r.x; a = v.maxC? (r.x? .12+.78*(r.x/v.maxC) : 0) : 0;
+        lab = r.n ? (r.x+"回 / "+r.n) : "未出題";
+      } else {
+        if(r.n===0){ val=0; a=0; lab="未出題"; }
+        else { val=r.x/r.n; a=.10+.80*val; lab=Math.round(val*100)+"%  ("+r.x+"/"+r.n+")";
+               if(r.n<3){ a*=0.45; faint=true; } }
+      }
+      var style = a>0 ? ' style="background:rgba(var(--heat),'+a.toFixed(3)+')"' : '';
+      var cls = 'cellbtn'+(a>0?' hot':'')+(a>0.55&&!faint?' light':'');
+      h+='<td><button class="'+cls+'"'+style+' data-c="'+x.c+'" data-f="'+f+'">'+
+         '<span class="g">'+glyphOf(x.c,f)+'</span><span class="v">'+lab+'</span></button></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</table>';
+  host.innerHTML=h;
+  Array.prototype.forEach.call(host.querySelectorAll("button.cellbtn"),function(b){
+    b.addEventListener("click",function(){
+      var c=b.dataset.c, f=b.dataset.f, it=byChar(c), r=rec(c,f);
+      $("detail").innerHTML='<span class="t">'+it.t+'（'+it.k+'）'+formName(f)+'</span><br>'+
+        '出題 '+r.n+' 回　まちがい '+r.x+' 回　'+
+        (r.n? 'まちがえ率 '+Math.round(r.x/r.n*100)+'%' : '—');
+    });
+  });
+}
+
+/* ---------- 画面切替・操作 ---------- */
+function show(which){
+  $("paneQ").classList.toggle("hidden", which!=="q");
+  $("paneH").classList.toggle("hidden", which!=="h");
+  $("tabQ").classList.toggle("on", which==="q");
+  $("tabH").classList.toggle("on", which==="h");
+  if(which==="h") drawHeat();
+}
+$("tabQ").addEventListener("click",function(){ show("q"); });
+$("tabH").addEventListener("click",function(){ show("h"); });
+$("mCount").addEventListener("click",function(){ metric="count";
+  this.classList.add("on"); $("mRate").classList.remove("on"); drawHeat(); });
+$("mRate").addEventListener("click",function(){ metric="rate";
+  this.classList.add("on"); $("mCount").classList.remove("on"); drawHeat(); });
+
+$("restart").addEventListener("click",function(){ start(fullRound()); });
+$("again").addEventListener("click",function(){ if(misses.length) start(shuffle(misses)); });
+function goWeak(){
+  var w=weakRound(15);
+  if(!w.length){ alert("まちがえた記録がまだありません。"); return; }
+  show("q"); start(w);
+}
+$("weak").addEventListener("click",goWeak);
+$("weak2").addEventListener("click",goWeak);
+$("reset").addEventListener("click",function(){
+  if(!confirm("これまでの出題・誤答の記録をすべて消します。よろしいですか？")) return;
+  stats={}; saveStats(); drawHeat();
+  $("detail").textContent="記録を消しました。";
+});
+$("optForms").addEventListener("change",function(){ opts.forms=this.checked; });
+$("optKana").addEventListener("change",function(){
+  opts.kana=this.checked;
+  Array.prototype.forEach.call($("choices").children,function(b){
+    if(b.classList.contains("correct")) return;
+    var f=null; L.forEach(function(x){ if(x.t===b.dataset.t) f=x; });
+    b.querySelector(".kana").textContent = opts.kana&&f ? f.k : "";
+  });
+});
+
+start(fullRound());
+drawHeat();
+})();
+</script>
+
+<script>
+/* ---- 記録のバックアップ・復元 ---- */
+(function(){
+"use strict";
+var PREFIX="arabic-quiz:";
+function collect(){
+  var o={};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k && k.indexOf(PREFIX)===0) o[k]=localStorage.getItem(k);
+  }
+  return {app:PREFIX, saved:new Date().toISOString(), data:o};
+}
+var $=function(i){return document.getElementById(i);};
+$("bkExp").addEventListener("click",function(){
+  var dump=collect();
+  if(!Object.keys(dump.data).length){ alert("まだ保存された記録がありません。"); return; }
+  var blob=new Blob([JSON.stringify(dump,null,1)],{type:"application/json"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url;
+  a.download=PREFIX.replace(/:$/,"")+"-backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); },2000);
+});
+$("bkImp").addEventListener("click",function(){ $("bkFile").click(); });
+$("bkFile").addEventListener("change",function(e){
+  var f=e.target.files && e.target.files[0];
+  if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    var j;
+    try{ j=JSON.parse(r.result); }catch(err){ alert("ファイルを読めませんでした。"); return; }
+    if(!j || !j.data){ alert("バックアップファイルではないようです。"); return; }
+    if(j.app && j.app!==PREFIX && !confirm("別のアプリのバックアップのようです。続けますか？")) return;
+    try{
+      Object.keys(j.data).forEach(function(k){ localStorage.setItem(k,j.data[k]); });
+    }catch(err){ alert("保存できませんでした。"); return; }
+    alert("復元しました。画面を読み込み直します。");
+    location.reload();
+  };
+  r.readAsText(f);
+});
+})();
+
+/* ---- Service Worker ---- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("./sw.js").catch(function(){});
+  });
+}
+</script>
+
+</body>
+</html>
